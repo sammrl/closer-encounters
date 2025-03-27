@@ -188,7 +188,7 @@ const TimeSlider: React.FC<TimeSliderProps> = ({
             {currentYear < 0 && <div className="time-slider-era">BCE</div>}
           </div>
           
-          {/* Playback Control Group */}
+          {/* Playback Control Group - positioned between year and timeline */}
           <div className="playback-controls-group">
             {/* Slow Down Button */}
             <button 
@@ -244,7 +244,7 @@ const TimeSlider: React.FC<TimeSliderProps> = ({
             onMouseEnter={handleTrackMouseEnter}
             onMouseLeave={handleTrackMouseLeave}
           >
-            {/* Hover year preview - positioned absolutely against window coordinates */}
+            {/* Hover year preview */}
             {isTrackHovering && mouseX !== null && hoverPosition !== null && hoverYear !== currentYear && trackRef.current && (
               <div 
                 className="time-slider-preview-tooltip" 
@@ -260,7 +260,7 @@ const TimeSlider: React.FC<TimeSliderProps> = ({
             <div className="time-slider-track">
               <div className="time-slider-progress" style={{ width: `${handlePosition}%` }} />
               
-              {/* Hover preview line - aligned with cursor */}
+              {/* Hover preview line */}
               {isTrackHovering && mouseX !== null && hoverPosition !== null && !isDragging && trackRef.current && (
                 <div 
                   className="time-slider-hover-line" 

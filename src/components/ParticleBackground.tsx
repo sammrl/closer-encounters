@@ -1,4 +1,5 @@
 import React, { useRef, useEffect } from 'react';
+import { motion, useAnimation, AnimatePresence } from 'framer-motion';
 
 interface Particle {
   x: number;
@@ -10,6 +11,8 @@ interface Particle {
   alpha: number;
   twinkle: number;
   twinkleSpeed: number;
+  twinklePause: number;
+  brightness: number;
 }
 
 interface ParticleBackgroundProps {
@@ -25,7 +28,7 @@ interface ParticleBackgroundProps {
 
 const ParticleBackground: React.FC<ParticleBackgroundProps> = ({
   particleCount = 80,
-  particleColors = ['#6ee7ff', '#ff7b3d', '#65fc78'],
+  particleColors = ['#ffffff', '#a5f3fc', '#f0f9ff'],
   maxSize = 3,
   maxSpeed = 0.5,
   connectParticles = true,
@@ -45,18 +48,32 @@ const ParticleBackground: React.FC<ParticleBackgroundProps> = ({
     
     for (let i = 0; i < particleCount; i++) {
       // Create more variance in particle sizes
-      const sizeVariance = Math.random() < 0.2 ? Math.random() * 1.5 : Math.random(); // 20% chance of a larger star
+      const sizeVariance = Math.random();
+      const isBrightStar = Math.random() < 0.05; // 5% chance of a bright star
+      const isMediumStar = Math.random() < 0.15; // 15% chance of a medium star
+      
+      const starSize = isBrightStar ? maxSize * (1.2 + Math.random() * 0.8) : 
+                      isMediumStar ? maxSize * (0.7 + Math.random() * 0.5) : 
+                      sizeVariance * maxSize * 0.7 + 0.3;
+      
+      // More randomized twinkling speeds - much slower overall
+      const twinkleSpeed = 0.003 + Math.random() * 0.01; // 3-10x slower than before
+      
+      // Random pause time between twinkles
+      const twinklePause = Math.random() * 100;
       
       particles.push({
         x: Math.random() * width,
         y: Math.random() * height,
-        size: sizeVariance * maxSize + 0.3,
-        speedX: (Math.random() - 0.5) * maxSpeed * 0.7, // Slower movement for stars
-        speedY: (Math.random() - 0.5) * maxSpeed * 0.7,
+        size: starSize,
+        speedX: (Math.random() - 0.5) * maxSpeed * 0.3, // Even slower movement for stars
+        speedY: (Math.random() - 0.5) * maxSpeed * 0.3,
         color: particleColors[Math.floor(Math.random() * particleColors.length)],
-        alpha: Math.random() * 0.8 + 0.2,
+        alpha: Math.random() * 0.6 + 0.4,
         twinkle: Math.random() * Math.PI * 2, // Random starting point for twinkle
-        twinkleSpeed: 0.03 + Math.random() * 0.04 // Random twinkle speed
+        twinkleSpeed: twinkleSpeed,
+        twinklePause: twinklePause,
+        brightness: isBrightStar ? 1.2 : isMediumStar ? 0.9 : 0.6 + Math.random() * 0.3
       });
     }
     
@@ -65,28 +82,68 @@ const ParticleBackground: React.FC<ParticleBackgroundProps> = ({
 
   // Draw a single particle
   const drawParticle = (ctx: CanvasRenderingContext2D, particle: Particle) => {
-    // Update twinkle phase
-    particle.twinkle += particle.twinkleSpeed;
-    
-    // Calculate alpha based on twinkle
-    const twinkleAlpha = (Math.sin(particle.twinkle) + 1) * 0.4 + 0.2;
-    const finalAlpha = particle.alpha * twinkleAlpha;
-    
-    // Add glow for larger stars
-    if (particle.size > maxSize * 0.7) {
-      ctx.globalAlpha = finalAlpha * 0.2;
-      ctx.fillStyle = particle.color;
-      ctx.beginPath();
-      ctx.arc(particle.x, particle.y, particle.size * 2, 0, 2 * Math.PI);
-      ctx.fill();
+    // Update twinkle phase more realistically with pauses
+    if (Math.sin(particle.twinkle) < -0.9) {
+      // When at minimum brightness, potentially pause
+      if (Math.random() < 0.01) { // Only occasionally increment during pause
+        particle.twinkle += particle.twinkleSpeed * 0.1;
+      }
+    } else {
+      particle.twinkle += particle.twinkleSpeed;
     }
     
-    // Draw the main star
+    // Calculate alpha based on twinkle - more subtle for realism
+    // Make the twinkle effect more asymmetric (faster brightening, slower dimming)
+    const twinkleCurve = Math.sin(particle.twinkle);
+    let twinkleAlpha;
+    
+    if (twinkleCurve >= 0) {
+      // Brightening phase - quicker
+      twinkleAlpha = (twinkleCurve * 0.3) + 0.7; // Range from 0.7 to 1.0
+    } else {
+      // Dimming phase - slower
+      twinkleAlpha = (twinkleCurve * 0.2) + 0.7; // Range from 0.5 to 0.7
+    }
+    
+    const finalAlpha = particle.alpha * twinkleAlpha * particle.brightness;
+    
+    // Enhanced glow effect for stars
+    // Add atmospheric glow for all stars
+    ctx.globalAlpha = finalAlpha * 0.15;
+    ctx.fillStyle = particle.color;
+    
+    // First outer glow - very faint
+    ctx.beginPath();
+    ctx.arc(particle.x, particle.y, particle.size * 3, 0, 2 * Math.PI);
+    ctx.fill();
+    
+    // Middle glow
+    ctx.globalAlpha = finalAlpha * 0.3;
+    ctx.beginPath();
+    ctx.arc(particle.x, particle.y, particle.size * 1.5, 0, 2 * Math.PI);
+    ctx.fill();
+    
+    // Core star
     ctx.globalAlpha = finalAlpha;
     ctx.fillStyle = particle.color;
     ctx.beginPath();
     ctx.arc(particle.x, particle.y, particle.size, 0, 2 * Math.PI);
     ctx.fill();
+    
+    // Add starlight cross effect for brightest stars
+    if (particle.size > maxSize * 0.9 && finalAlpha > 0.7) {
+      ctx.globalAlpha = finalAlpha * 0.4;
+      ctx.beginPath();
+      // Horizontal line
+      ctx.moveTo(particle.x - particle.size * 2, particle.y);
+      ctx.lineTo(particle.x + particle.size * 2, particle.y);
+      // Vertical line
+      ctx.moveTo(particle.x, particle.y - particle.size * 2);
+      ctx.lineTo(particle.x, particle.y + particle.size * 2);
+      ctx.strokeStyle = particle.color;
+      ctx.lineWidth = particle.size * 0.2;
+      ctx.stroke();
+    }
   };
 
   // Connect particles with lines if they're close enough
@@ -103,9 +160,9 @@ const ParticleBackground: React.FC<ParticleBackgroundProps> = ({
         
         if (distance < proximityThreshold) {
           const opacity = 1 - (distance / proximityThreshold);
-          ctx.globalAlpha = opacity * 0.6;
+          ctx.globalAlpha = opacity * 0.3; // More subtle connections
           ctx.strokeStyle = lineColor;
-          ctx.lineWidth = lineWidth * 1.2;
+          ctx.lineWidth = lineWidth;
           ctx.beginPath();
           ctx.moveTo(particles[i].x, particles[i].y);
           ctx.lineTo(particles[j].x, particles[j].y);
@@ -117,7 +174,7 @@ const ParticleBackground: React.FC<ParticleBackgroundProps> = ({
     
     // Connect to mouse position if available
     if (mouseInteraction && mouseRef.current.x !== null && mouseRef.current.y !== null) {
-      const mouseProximityThreshold = width * 0.1;
+      const mouseProximityThreshold = width * 0.12;
       const maxMouseConnections = 5;
       
       const sorted = [...particlesRef.current]
@@ -134,7 +191,7 @@ const ParticleBackground: React.FC<ParticleBackgroundProps> = ({
         if (distance < mouseProximityThreshold) {
           const particle = particlesRef.current[idx];
           const opacity = 1 - (distance / mouseProximityThreshold);
-          ctx.globalAlpha = opacity * 0.8;
+          ctx.globalAlpha = opacity * 0.5;
           ctx.strokeStyle = lineColor;
           ctx.lineWidth = lineWidth * 1.5;
           ctx.beginPath();
@@ -160,9 +217,9 @@ const ParticleBackground: React.FC<ParticleBackgroundProps> = ({
     
     // Update and draw particles
     particlesRef.current.forEach(particle => {
-      // Update position
-      particle.x += particle.speedX;
-      particle.y += particle.speedY;
+      // Update position (very slow movement)
+      particle.x += particle.speedX * 0.2;
+      particle.y += particle.speedY * 0.2;
       
       // Handle edge collisions
       if (particle.x < 0 || particle.x > canvas.width) particle.speedX *= -1;

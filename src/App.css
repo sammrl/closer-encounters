@@ -543,6 +543,8 @@
   border-radius: 20px;
   padding: 6px;
   border: 1px solid rgba(59, 130, 246, 0.15);
+  position: relative;
+  z-index: 1;
 }
 
 .time-slider-play-button {
@@ -621,18 +623,19 @@
   flex-grow: 1;
   position: relative;
   height: 100%;
+  margin-left: 15px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 .time-slider-track {
-  position: absolute;
-  top: 50%;
-  left: 0;
-  right: 0;
+  position: relative;
   height: 4px;
   background: rgba(100, 116, 139, 0.3);
   border-radius: 2px;
-  transform: translateY(-50%);
   overflow: visible;
+  margin-top: 20px;
 }
 
 .time-slider-progress {
