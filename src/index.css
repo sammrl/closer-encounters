@@ -1,0 +1,373 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body, html, #root {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  background-color: #000;
+  color: #fff;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Star field background */
+.globe-container {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  background-color: #020408;
+  background-image: 
+    radial-gradient(white, rgba(255,255,255,.15) 1px, transparent 30px),
+    radial-gradient(white, rgba(255,255,255,.1) 1px, transparent 25px);
+  background-size: 550px 550px, 350px 350px;
+  background-position: 0 0, 40px 60px;
+}
+
+/* Custom tooltip styling */
+.globe-tooltip {
+  padding: 14px 18px;
+  background-color: rgba(15, 23, 42, 0.75);
+  border: 1px solid rgba(59, 130, 246, 0.4);
+  border-radius: 12px;
+  color: white;
+  font-family: 'Inter', -apple-system, sans-serif;
+  font-size: 14px;
+  font-weight: 300;
+  letter-spacing: 0.02em;
+  pointer-events: auto !important;
+  box-shadow: 
+    0 0 20px rgba(56, 182, 255, 0.2),
+    0 4px 25px rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(12px);
+  z-index: 1000;
+  max-width: 280px;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  transform-origin: center bottom;
+  animation: tooltip-appear 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+
+.globe-tooltip::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, currentColor, transparent);
+  opacity: 0.5;
+  animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+.globe-tooltip-ring-container {
+  position: absolute;
+  top: -15px;
+  right: -15px;
+  opacity: 0.7;
+  transform: scale(0.5);
+  transform-origin: top right;
+  transition: all 0.3s ease;
+  pointer-events: none;
+  z-index: -1;
+}
+
+.globe-tooltip:hover .globe-tooltip-ring-container {
+  opacity: 1;
+  transform: scale(0.8) rotate(15deg);
+}
+
+.globe-tooltip:hover {
+  background-color: rgba(15, 23, 42, 0.9);
+  border-color: rgba(59, 130, 246, 0.8);
+  transform: scale(1.04) translateY(-2px);
+  box-shadow: 
+    0 0 30px rgba(56, 182, 255, 0.3),
+    0 10px 30px rgba(0, 0, 0, 0.8);
+}
+
+.globe-tooltip-pulse {
+  position: absolute;
+  bottom: -10px;
+  left: 50%;
+  width: 30px;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.7), transparent);
+  transform: translateX(-50%);
+  border-radius: 3px;
+  opacity: 0.6;
+  animation: pulse-width 3s infinite;
+}
+
+@keyframes pulse-width {
+  0%, 100% { width: 20px; opacity: 0.3; }
+  50% { width: 50px; opacity: 0.8; }
+}
+
+/* Enhanced animations for tooltip elements */
+.globe-tooltip-title, 
+.globe-tooltip-meta, 
+.globe-tooltip-footer {
+  animation: fade-slide-up 0.5s forwards;
+  opacity: 0;
+  transform: translateY(10px);
+}
+
+.globe-tooltip-meta {
+  animation-delay: 0.1s;
+}
+
+.globe-tooltip-footer {
+  animation-delay: 0.2s;
+}
+
+@keyframes fade-slide-up {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes tooltip-appear {
+  from {
+    opacity: 0;
+    transform: translateY(15px) scale(0.93);
+    box-shadow: 0 0 0 rgba(56, 182, 255, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    box-shadow: 
+      0 0 20px rgba(56, 182, 255, 0.2),
+      0 4px 25px rgba(0, 0, 0, 0.8);
+  }
+}
+
+/* Tooltip arrow */
+.globe-tooltip::after {
+  content: '';
+  position: absolute;
+  bottom: -7px;
+  left: 50%;
+  margin-left: -7px;
+  width: 14px;
+  height: 14px;
+  background: rgba(15, 23, 42, 0.9);
+  border-right: 1px solid rgba(59, 130, 246, 0.4);
+  border-bottom: 1px solid rgba(59, 130, 246, 0.4);
+  transform: rotate(45deg);
+  backdrop-filter: blur(12px);
+  box-shadow: 4px 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+/* Tooltip internal elements */
+.globe-tooltip-title {
+  font-weight: 500;
+  margin-bottom: 8px;
+  letter-spacing: 0.02em;
+  font-size: 16px;
+  background: linear-gradient(90deg, #fff, #e2e8f0);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  display: inline-block;
+}
+
+.globe-tooltip-meta {
+  font-size: 12px;
+  color: rgba(203, 213, 225, 0.8);
+  margin-bottom: 10px;
+  display: flex;
+  justify-content: space-between;
+}
+
+.globe-tooltip-footer {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(59, 130, 246, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+}
+
+.globe-tooltip-btn {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 5px 12px;
+  background: rgba(59, 130, 246, 0.15);
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.globe-tooltip-btn:hover {
+  background: rgba(59, 130, 246, 0.3);
+  color: white;
+  transform: translateX(2px);
+}
+
+.globe-tooltip-icon {
+  margin-left: 6px;
+  font-size: 14px;
+}
+
+/* Circular Analytics Panel */
+.circular-analytics {
+  position: fixed;
+  bottom: 0px;
+  right: 0px;
+  width: 280px;
+  height: 280px;
+  border-radius: 50%;
+  background: radial-gradient(circle at center, rgba(15, 23, 42, 0.8), rgba(15, 23, 42, 0.95));
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 
+    0 0 30px rgba(0, 0, 0, 0.3),
+    0 0 15px rgba(59, 130, 246, 0.15);
+  animation: float 6s ease-in-out infinite, fade-in 1s ease-out;
+  overflow: hidden;
+}
+
+.circular-analytics::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: conic-gradient(
+    transparent, 
+    rgba(59, 130, 246, 0.05), 
+    rgba(59, 130, 246, 0.1), 
+    rgba(59, 130, 246, 0.05), 
+    transparent
+  );
+  animation: rotate 20s linear infinite;
+}
+
+.circular-analytics::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  background: radial-gradient(circle at center, transparent 60%, rgba(59, 130, 246, 0.1));
+}
+
+.circular-analytics-inner {
+  position: relative;
+  width: 85%;
+  height: 85%;
+  border-radius: 50%;
+  background: rgba(15, 23, 42, 0.9);
+  padding: 25px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  z-index: 10;
+}
+
+.analytics-title {
+  text-align: center;
+  font-size: 16px;
+  font-weight: 500;
+  margin-bottom: 5px;
+  color: rgba(255, 255, 255, 0.9);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  background: linear-gradient(90deg, #fff, #e2e8f0);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.analytics-stat {
+  text-align: center;
+  margin-bottom: 15px;
+}
+
+.analytics-value {
+  font-size: 32px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.95);
+  line-height: 1;
+  margin-bottom: 4px;
+}
+
+.analytics-label {
+  font-size: 12px;
+  color: rgba(148, 163, 184, 0.9);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.analytics-breakdown {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 120px;
+}
+
+.analytics-category {
+  margin-bottom: 2px;
+}
+
+.analytics-time {
+  margin-top: 10px;
+  text-align: center;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+@keyframes rotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(15, 23, 42, 0.2);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(59, 130, 246, 0.3);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(59, 130, 246, 0.5);
+}
