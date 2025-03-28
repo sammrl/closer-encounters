@@ -2,7 +2,8 @@ import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import Globe from 'react-globe.gl';
 import './App.css';
 import ParticleBackground from './components/ParticleBackground';
-import TimePeriodFilter, { TIME_PERIODS, TimePeriodKey } from './components/TimePeriodFilter';
+import { TIME_PERIODS, TimePeriodKey } from './components/TimePeriodFilter';
+import FilterPanel, { FilterOptions, defaultFilters } from './components/FilterPanel';
 import TimeSlider from './components/TimeSlider';
 import { LoadingProgress, ColorScheme } from './types';
 
@@ -255,6 +256,7 @@ const App: React.FC = () => {
   const [timelineYearRange, setTimelineYearRange] = useState<[number, number]>([-3000, new Date().getFullYear()]);
   const [playbackSpeed, setPlaybackSpeed] = useState<number>(1);
   const timelineIntervalRef = useRef<number | null>(null);
+  const [filters, setFilters] = useState<FilterOptions>(defaultFilters);
   const [loading, setLoading] = useState<LoadingState>({
     isLoading: false,
     progress: 0,
@@ -389,6 +391,26 @@ const App: React.FC = () => {
       { name: 'Auckland', country: 'New Zealand', region: 'Auckland', lat: -36.8509, lng: 174.7645 }
     ];
     
+    // Encounter types based on Hynek scale and traditional categories
+    const encounterTypes = [
+      { type: 'nocturnalLights', description: 'Nocturnal light phenomenon observed in the night sky.' },
+      { type: 'daylightDiscs', description: 'Disc-shaped craft spotted during daylight hours.' },
+      { type: 'radarVisual', description: 'Object tracked on military radar and confirmed visually by trained observers.' },
+      // CE-1: Visual UFO at close range
+      { type: 'ce1', description: 'Close Encounter Type 1: Clearly observed UFO at close range (~500 ft or less), detailed visual description, no interaction or physical traces.' },
+      // CE-2: Physical effects
+      { type: 'ce2', description: 'Close Encounter Type 2: UFO observed with physical evidence, including heat damage to soil, electromagnetic interference with vehicles, and radiation readings.' },
+      // CE-3: Entity observed, various subtypes
+      { type: 'ce3A', description: 'Close Encounter Type 3-A: Humanoid entities observed near the craft. The beings were approximately 4 feet tall with silver suits but did not interact with witnesses.' },
+      { type: 'ce3B', description: 'Close Encounter Type 3-B: Humanoid entities made deliberate gestures toward the witnesses, appeared to be attempting communication through hand signals.' },
+      { type: 'ce3C', description: 'Close Encounter Type 3-C: Direct interaction with non-human entities who communicated telepathically with the witnesses, sharing complex information.' },
+      { type: 'ce3D', description: 'Close Encounter Type 3-D: Witness reported being temporarily taken aboard the craft before being returned. Partial memory loss and time dilation reported.' },
+      { type: 'ce3E', description: 'Close Encounter Type 3-E: Following the entity encounter, the witness developed unexplained marks on their body and reported recurring nightmares for several years.' },
+      { type: 'ce3F', description: 'Close Encounter Type 3-F: One entity appeared to be injured during the encounter, leaving behind biological material that could not be identified through standard analysis.' },
+      // CE-4: Abduction
+      { type: 'ce4', description: 'Close Encounter Type 4: Explicit abduction experience. Witness provided a detailed account of being taken aboard the craft and subjected to various procedures by non-human entities.' }
+    ];
+    
     // Generate a large number of sightings for a sci-fi look
     const generateSightings = (count: number, useRandomLocations = false) => {
       return Array(count).fill(0).map((_, i) => {
@@ -435,16 +457,38 @@ const App: React.FC = () => {
         }
         
         // Use a uniform size for all markers for sci-fi coherence
-        const size = 1.0; 
+        const size = 1.0;
         
         // UFO shape
         const ufoShape = ufoShapes[Math.floor(Math.random() * ufoShapes.length)];
         
-        // Generate description
+        // Generate description with encounter type
         const timeOfDay = ['morning', 'afternoon', 'evening', 'night'][Math.floor(Math.random() * 4)];
         const duration = Math.floor(Math.random() * 30) + 1;
         const witnesses = Math.floor(Math.random() * 20) + 1;
         
+        // Randomly select an encounter type, with CE types being less common
+        // (weighted distribution to make CE types rarer)
+        let encounterType;
+        const encounterRandom = Math.random();
+        if (encounterRandom < 0.35) {
+          // Common types (35% chance)
+          encounterType = encounterTypes[Math.floor(Math.random() * 3)];
+        } else if (encounterRandom < 0.60) {
+          // CE-1 (25% chance)
+          encounterType = encounterTypes[3];
+        } else if (encounterRandom < 0.75) {
+          // CE-2 (15% chance)
+          encounterType = encounterTypes[4];
+        } else if (encounterRandom < 0.93) {
+          // CE-3 subtypes (18% chance total, approximately 3% each)
+          const ceIndex = 5 + Math.floor(Math.random() * 6);
+          encounterType = encounterTypes[ceIndex];
+        } else {
+          // CE-4 (7% chance)
+          encounterType = encounterTypes[11];
+        }
+                
         return {
           id: `sighting-${i}`,
           lat: location.lat + latOffset,
@@ -460,12 +504,12 @@ const App: React.FC = () => {
           location: location.name,
           region: location.region,
           country: location.country,
-          description: `This ${ufoShape} object was spotted in the ${timeOfDay} and observed for approximately ${duration} minutes by ${witnesses} witnesses. The object ${
+          description: `This ${ufoShape} object was spotted in the ${timeOfDay} and observed for approximately ${duration} minutes by ${witnesses} witnesses. ${encounterType.description} ${
             category === 'confirmed' 
-              ? 'was tracked on multiple radar systems and confirmed by military personnel.' 
+              ? 'This event was tracked on multiple radar systems and confirmed by military personnel.' 
               : category === 'probable'
-                ? 'was photographed clearly and witnessed by multiple credible observers.'
-                : 'was reported by a small number of witnesses with no physical evidence.'
+                ? 'The event was photographed clearly and witnessed by multiple credible observers.'
+                : 'The event was reported by a small number of witnesses with limited supporting evidence.'
           }`
         };
       });
@@ -714,14 +758,17 @@ const App: React.FC = () => {
     }
   }, [isTimelinePlaying, setupPlaybackInterval]);
 
-  // Filter markers based on the timeline year when in timeline mode
+  // Apply all filters to markers
   useEffect(() => {
-    if (activePeriod !== null) {
+    let filtered = [...markers];
+    
+    // Step 1: Apply time period filter
+    if (filters.timePeriod !== null) {
       // When a time period is selected, use the period filter
-      const period = TIME_PERIODS[activePeriod];
+      const period = TIME_PERIODS[filters.timePeriod];
       const [minYear, maxYear] = period.range;
       
-      const filtered = markers.filter(marker => {
+      filtered = filtered.filter(marker => {
         if (marker.year === undefined) {
           return false; // Skip markers without a year
         }
@@ -730,10 +777,21 @@ const App: React.FC = () => {
       
       setFilteredMarkers(filtered);
       setTimelineMarkers([]); // Clear timeline markers when using period filter
+    } else if (filters.customDateRange) {
+      // Apply custom date range if specified
+      const [minYear, maxYear] = filters.customDateRange;
+      
+      filtered = filtered.filter(marker => {
+        if (marker.year === undefined) {
+          return false; // Skip markers without a year
+        }
+        return marker.year >= minYear && marker.year <= maxYear;
+      });
+      
+      setFilteredMarkers(filtered);
+      setTimelineMarkers([]); // Clear timeline markers when using custom range
     } else {
       // When no period is selected, we use the timeline
-      // For the regular filtered markers, show all markers in the base set
-      // This will ensure that markers that don't have a year still show up
       setFilteredMarkers([]);
       
       // For timeline, only include markers up to the current year that have a valid year
@@ -747,9 +805,207 @@ const App: React.FC = () => {
         return marker.year <= timelineYear;
       });
       
+      filtered = timelineFiltered;
       setTimelineMarkers(timelineFiltered);
     }
-  }, [activePeriod, markers, timelineYear]);
+    
+    // Step 2: Apply credibility filter if set
+    if (filters.credibilityRating > 0) {
+      filtered = filtered.filter(marker => {
+        return marker.credibility !== undefined && marker.credibility >= filters.credibilityRating;
+      });
+    }
+    
+    // Removed entity and military filters
+    
+    // Step 3: Apply encounter type filters with refined descriptions
+    const encounterTypes = filters.encounterTypes;
+    const hasEncounterTypeFilter = Object.values(encounterTypes).some(v => v);
+    
+    if (hasEncounterTypeFilter) {
+      filtered = filtered.filter(marker => {
+        const description = marker.description?.toLowerCase() || '';
+        const title = marker.title?.toLowerCase() || '';
+        const fullText = `${description} ${title}`;
+        
+        // Match based on encounter type with more precise keywords
+        if (encounterTypes.nocturnalLights && 
+            (fullText.includes('night') || fullText.includes('evening') || 
+             fullText.includes('dark') || fullText.includes('nocturnal') ||
+             fullText.includes('light in the sky') || fullText.includes('lights'))) {
+          return true;
+        }
+        
+        if (encounterTypes.daylightDiscs && 
+            ((fullText.includes('daylight') || fullText.includes('daytime') || 
+              fullText.includes('morning') || fullText.includes('afternoon')) &&
+             (fullText.includes('disc') || fullText.includes('disk') || 
+              fullText.includes('saucer') || fullText.includes('object')))) {
+          return true;
+        }
+        
+        if (encounterTypes.radarVisual && 
+            (fullText.includes('radar') || fullText.includes('tracked') ||
+             fullText.includes('detection') || fullText.includes('instrument') ||
+             fullText.includes('air traffic') || fullText.includes('military tracking'))) {
+          return true;
+        }
+        
+        // Hynek Scale CE filters
+        if (encounterTypes.ce1 && 
+            (fullText.includes('close encounter type 1') || fullText.includes('ce1') || 
+             (fullText.includes('close range') && !fullText.includes('entity') && 
+              !fullText.includes('physical evidence')))) {
+          return true;
+        }
+        
+        if (encounterTypes.ce2 && 
+            (fullText.includes('close encounter type 2') || fullText.includes('ce2') || 
+             fullText.includes('physical evidence') || fullText.includes('traces') || 
+             fullText.includes('electromagnetic') || fullText.includes('radiation') ||
+             fullText.includes('heat damage'))) {
+          return true;
+        }
+        
+        // CE-3 categories
+        if (encounterTypes.ce3 || encounterTypes.ce3A || encounterTypes.ce3B || 
+            encounterTypes.ce3C || encounterTypes.ce3D || encounterTypes.ce3E || 
+            encounterTypes.ce3F) {
+          
+          // Check if it's any type of CE-3
+          const isCE3 = fullText.includes('close encounter type 3') || 
+                        fullText.includes('ce3') || 
+                        fullText.includes('entity') || 
+                        fullText.includes('being') || 
+                        fullText.includes('humanoid');
+          
+          // If CE-3 is checked and it's any CE-3, or if no specific CE-3 subtypes are checked
+          if ((encounterTypes.ce3 && !encounterTypes.ce3A && !encounterTypes.ce3B && 
+               !encounterTypes.ce3C && !encounterTypes.ce3D && !encounterTypes.ce3E && 
+               !encounterTypes.ce3F && isCE3)) {
+            return true;
+          }
+          
+          // Check specific CE-3 subtypes
+          if (encounterTypes.ce3A && 
+              (fullText.includes('3-a') || fullText.includes('ce3a') || 
+               (fullText.includes('entity') && !fullText.includes('interact')))) {
+            return true;
+          }
+          
+          if (encounterTypes.ce3B && 
+              (fullText.includes('3-b') || fullText.includes('ce3b') || 
+               fullText.includes('limited interaction') || fullText.includes('gestures'))) {
+            return true;
+          }
+          
+          if (encounterTypes.ce3C && 
+              (fullText.includes('3-c') || fullText.includes('ce3c') || 
+               fullText.includes('direct interaction') || fullText.includes('communication') || 
+               fullText.includes('telepathic'))) {
+            return true;
+          }
+          
+          if (encounterTypes.ce3D && 
+              (fullText.includes('3-d') || fullText.includes('ce3d') || 
+               fullText.includes('temporarily taken') || 
+               (fullText.includes('aboard') && !fullText.includes('explicit abduction')))) {
+            return true;
+          }
+          
+          if (encounterTypes.ce3E && 
+              (fullText.includes('3-e') || fullText.includes('ce3e') || 
+               fullText.includes('lasting impact') || fullText.includes('marks') || 
+               fullText.includes('nightmares'))) {
+            return true;
+          }
+          
+          if (encounterTypes.ce3F && 
+              (fullText.includes('3-f') || fullText.includes('ce3f') || 
+               fullText.includes('injured') || fullText.includes('biological material'))) {
+            return true;
+          }
+        }
+        
+        if (encounterTypes.ce4 && 
+            (fullText.includes('close encounter type 4') || fullText.includes('ce4') || 
+             fullText.includes('explicit abduction') || 
+             fullText.includes('taken aboard') && fullText.includes('procedures'))) {
+          return true;
+        }
+        
+        return false;
+      });
+    }
+    
+    // Step 4: Apply craft shape filters with better descriptions
+    const craftShapes = filters.craftShapes;
+    const hasShapeFilter = Object.values(craftShapes).some(v => v);
+    
+    if (hasShapeFilter) {
+      filtered = filtered.filter(marker => {
+        const description = marker.description?.toLowerCase() || '';
+        const title = marker.title?.toLowerCase() || '';
+        const fullText = `${description} ${title}`;
+        
+        // Match based on craft shape with more comprehensive keywords
+        if (craftShapes.saucer && 
+            (fullText.includes('saucer') || fullText.includes('disc') || 
+             fullText.includes('disk') || fullText.includes('flying saucer'))) {
+          return true;
+        }
+        
+        if (craftShapes.triangle && 
+            (fullText.includes('triangle') || fullText.includes('triangular') || 
+             fullText.includes('delta') || fullText.includes('pyramid') ||
+             fullText.includes('wedge') || fullText.includes('arrowhead'))) {
+          return true;
+        }
+        
+        if (craftShapes.sphere && 
+            (fullText.includes('sphere') || fullText.includes('spherical') || 
+             fullText.includes('ball') || fullText.includes('round') || 
+             fullText.includes('orb') || fullText.includes('circular') ||
+             fullText.includes('globe'))) {
+          return true;
+        }
+        
+        if (craftShapes.cylindrical && 
+            (fullText.includes('cylindrical') || fullText.includes('cigar') || 
+             fullText.includes('tube') || fullText.includes('cylinder') ||
+             fullText.includes('elongated') || fullText.includes('cigar-shaped') ||
+             fullText.includes('rod'))) {
+          return true;
+        }
+        
+        if (craftShapes.unknown && 
+            (fullText.includes('unknown') || fullText.includes('unidentified') ||
+             fullText.includes('unclear') || fullText.includes('indistinct'))) {
+          return true;
+        }
+        
+        if (craftShapes.other && 
+            (fullText.includes('boomerang') || fullText.includes('diamond') || 
+             fullText.includes('oval') || fullText.includes('egg') ||
+             fullText.includes('rectangular') || fullText.includes('cube') ||
+             fullText.includes('teardrop') || fullText.includes('cone') ||
+             fullText.includes('crescent'))) {
+          return true;
+        }
+        
+        // If we have active shape filters but this marker doesn't match any, exclude it
+        return false;
+      });
+    }
+    
+    // Update the appropriate state based on timeline or period filter
+    if (filters.timePeriod !== null || filters.customDateRange !== null) {
+      setFilteredMarkers(filtered);
+    } else {
+      setTimelineMarkers(filtered);
+    }
+    
+  }, [filters, markers, timelineYear]);
 
   // Calculate the min and max years from the dataset
   useEffect(() => {
@@ -775,14 +1031,19 @@ const App: React.FC = () => {
     }
   }, [markers]);
 
-  // Handle period selection
-  const handlePeriodSelect = useCallback((period: string | null) => {
-    setActivePeriod(period as TimePeriodKey | null);
+  // Handle filter changes
+  const handleFilterChange = useCallback((newFilters: FilterOptions) => {
+    setFilters(newFilters);
+    
+    // Update the time period filter state for backward compatibility
+    setActivePeriod(newFilters.timePeriod);
     
     // Stop timeline when switching to a period filter
-    if (period !== null && isTimelinePlaying) {
+    if (newFilters.timePeriod !== null && isTimelinePlaying) {
       setIsTimelinePlaying(false);
     }
+    
+    // Apply other filters logic here when we get to that part
   }, [isTimelinePlaying]);
 
   // Using useMemo to avoid unnecessary re-renders as per REACTGLOBEDOCS.md
@@ -939,10 +1200,10 @@ const App: React.FC = () => {
         {...globeOptions}
       />
       
-      {/* Time Period Filter */}
-      <TimePeriodFilter 
-        activePeriod={activePeriod} 
-        onSelectPeriod={handlePeriodSelect} 
+      {/* Comprehensive Filter Panel */}
+      <FilterPanel 
+        filters={filters}
+        onFilterChange={handleFilterChange}
       />
       
       {/* Hover indicator ring - now positioned relative to the mouse instead of trying to calculate position */}

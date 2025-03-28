@@ -1,0 +1,189 @@
+/* Tooltip styles with Jony Ive + sci-fi aesthetic */
+.tooltip-icon {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 14px;
+  cursor: pointer;
+  margin-left: 6px;
+  padding: 0;
+  transition: all 0.2s ease;
+}
+
+.tooltip-icon:hover {
+  color: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* Tooltip positioning - completely redesigned */
+.checkbox-container, .nested-checkbox {
+  position: relative;
+}
+
+/* Add back the smooth fade animation */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-2px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.tooltip-content {
+  position: absolute !important;
+  right: auto !important;
+  left: 30px !important;
+  top: -5px !important;
+  width: 280px;
+  padding: 10px 14px;
+  background: rgba(20, 22, 30, 0.95);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-radius: 8px;
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 13px;
+  line-height: 1.5;
+  z-index: 1000;
+  pointer-events: none;
+  animation: fadeIn 0.2s ease-in-out;
+}
+
+.tooltip-content::before {
+  content: '';
+  position: absolute;
+  right: auto;
+  left: -6px;
+  top: 10px;
+  width: 10px;
+  height: 10px;
+  background: rgba(20, 22, 30, 0.95);
+  border-left: 1px solid rgba(59, 130, 246, 0.2);
+  border-bottom: 1px solid rgba(59, 130, 246, 0.2);
+  border-right: none;
+  border-top: none;
+  transform: rotate(45deg);
+  z-index: 1;
+}
+
+/* Checkbox nested styles */
+.checkbox-nested-container {
+  margin-left: 20px;
+  border-left: 1px solid rgba(255, 255, 255, 0.1);
+  padding-left: 5px;
+}
+
+.nested-checkbox {
+  position: relative;
+  display: flex;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.nested-indicator {
+  color: rgba(255, 255, 255, 0.5);
+  margin-right: 5px;
+  font-size: 12px;
+}
+
+/* General filter styles enhancement */
+.filter-section-title {
+  display: flex;
+  align-items: center;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 1px;
+  margin-bottom: 12px;
+  text-transform: uppercase;
+}
+
+.filter-section-title svg {
+  margin-right: 8px;
+  opacity: 0.7;
+}
+
+.checkbox-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  margin-bottom: 8px;
+  cursor: pointer;
+}
+
+.checkbox-label {
+  margin-left: 8px;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.checkbox-input {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.05);
+  cursor: pointer;
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  transition: all 0.2s;
+}
+
+.checkbox-input:checked {
+  background: rgba(64, 156, 255, 0.8);
+  border-color: rgba(64, 156, 255, 0.8);
+}
+
+.checkbox-input:checked::after {
+  content: '';
+  width: 6px;
+  height: 10px;
+  border: solid white;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg) translate(-1px, -1px);
+  display: block;
+}
+
+.filter-options-panel {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 8px;
+  width: 300px;
+  background: rgba(18, 20, 30, 0.9);
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  padding: 16px;
+  z-index: 10;
+  animation: panelFadeIn 0.25s ease-out;
+}
+
+@keyframes panelFadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Make sure tooltip is centered on smaller screens */
+@media (max-width: 768px) {
+  .tooltip-content {
+    left: 30px !important;
+    width: 250px;
+  }
+}
+
+@media (max-width: 480px) {
+  .tooltip-content {
+    left: 25px !important;
+    width: 220px;
+  }
+} 
